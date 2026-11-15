@@ -314,5 +314,9 @@ const ran = parseNodeTestSummary(out)
 if (ran.fail > 0) {
   console.log('WARN  已知失败 ' + ran.fail + ' 项（均带理由）：' + KNOWN_FAIL.map((e) => e.file).join(', '))
 }
+// SKIP= 用大写并与 skip= 同值：聚合门禁（check-gate-skips）只认 `SKIP=n` 这一种汇总形态，
+// 缺它时任何一条运行期 SKIP 行都会把整条链判红（本仓实测：CI 上 23 条运行期 SKIP ⇒ 汇总缺席）。
+// 两种写法并存是刻意的：小写跟随 node --test 的字段名，大写满足聚合判据。
 console.log('CHECK-SCRIPT-TESTS PASSED（node:test ' + toRun.length + ' 个 + 普通脚本 ' + plainFiles.length
-  + ' 个；pass=' + ran.pass + '；skip=' + ran.skipped + '；已知失败 ' + ran.fail + '；内联豁免 ' + INLINED.length + ' 个）')
+  + ' 个；pass=' + ran.pass + '；skip=' + ran.skipped + '；SKIP=' + ran.skipped
+  + '；已知失败 ' + ran.fail + '；内联豁免 ' + INLINED.length + ' 个）')
