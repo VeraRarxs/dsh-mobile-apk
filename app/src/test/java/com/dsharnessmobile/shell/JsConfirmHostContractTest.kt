@@ -51,10 +51,20 @@ class JsConfirmHostContractTest {
   @Test
   fun bothHostsActuallyUseTheBaseClient() {
     // 只写基类而不接到宿主上等于没修——这条钉住「真的接上了」。
-    assertTrue("MainActivity 的 webChromeClient 必须用 JsConfirmChromeClient",
-      codeOnly(source("MainActivity.kt")).contains("object : JsConfirmChromeClient(this@MainActivity)"))
-    assertTrue("BrowserHost 的 webChromeClient 必须用 JsConfirmChromeClient",
-      codeOnly(source("BrowserHost.kt")).contains("object : JsConfirmChromeClient(activity)"))
+    //
+    // 麦克风补丁把两个宿主的父类换成了 `MicChromeClient`（它在 JsConfirmChromeClient 之上只补
+    // `onPermissionRequest`），于是这里的字面判据从「必须直接写基类」放宽为「必须用基类，或用它
+    // 的直接子类」——放宽的同时把「子类确实继承基类」也钉住，防止有人把继承链断掉却让字面检查
+    // 蒙混过关（那会让 confirm() 静默退回默认 cancel()，正是 issue #1383 的原始形态）。
+    val micExtendsBase = codeOnly(source("MicChromeClient.kt")).contains(": JsConfirmChromeClient(host)")
+    val main = codeOnly(source("MainActivity.kt"))
+    assertTrue("MainActivity 的 webChromeClient 必须用 JsConfirmChromeClient 或其直接子类",
+      main.contains("object : JsConfirmChromeClient(this@MainActivity)") ||
+        (main.contains("object : MicChromeClient(this@MainActivity") && micExtendsBase))
+    val host = codeOnly(source("BrowserHost.kt"))
+    assertTrue("BrowserHost 的 webChromeClient 必须用 JsConfirmChromeClient 或其直接子类",
+      host.contains("object : JsConfirmChromeClient(activity)") ||
+        (host.contains("object : MicChromeClient(activity") && micExtendsBase))
   }
 
   @Test
