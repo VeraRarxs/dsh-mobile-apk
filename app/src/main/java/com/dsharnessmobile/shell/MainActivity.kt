@@ -2525,7 +2525,7 @@ class MainActivity : ComponentActivity() {
    * 位置说明：本重写放在类体末尾，是为了不动 `docs/AGENTS/EXECUTION-MAP.md` 上那批
    * `MainActivity.kt:行号` 锚点（在文件中间插入会让它们集体漂移，见 check-code-map）。
    */
-  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
     if (WebViewMicrophoneGate.onRequestPermissionsResult(this, requestCode, grantResults)) return
     super.onRequestPermissionsResult(requestCode, permissions, grantResults)
   }

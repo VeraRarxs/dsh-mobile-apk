@@ -110,7 +110,7 @@ internal object WebViewMicrophoneGate {
    */
   internal fun isAllowedRequest(pageUrl: String?, resources: List<String>, origin: String?): Boolean {
     // ① 只接受纯麦克风。空资源、摄像头、混合请求一律拒绝。
-    if (resources.isEmpty() || resources.any { it != PermissionRequest.RESOURCE_AUDIO }) return false
+    if (resources.isEmpty() || resources.any { it != PermissionRequest.RESOURCE_AUDIO_CAPTURE }) return false
     // ② 环回地址 + 与顶层页面同源。
     val page = parseLoopback(pageUrl) ?: return false
     val requesting = parseLoopback(origin) ?: return false
@@ -150,7 +150,7 @@ internal object WebViewMicrophoneGate {
 
   private fun settle(request: PermissionRequest, grant: Boolean) {
     try {
-      if (grant) request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO)) else request.deny()
+      if (grant) request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) else request.deny()
     } catch (t: Throwable) {
       // 页面已导航/销毁时结算会抛；这是页面的时序问题，不是壳的故障源。
     }
