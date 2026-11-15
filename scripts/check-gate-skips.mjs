@@ -493,6 +493,17 @@ const AUDIT_BASELINE = new Map([
     reason: '净检出无 tar 时以 SKIP 结案，不打印 PASS/FAIL 判据行',
     until: '2026-12-31',
   }],
+  // 2026-11-15 实测（本仓 fork 的 build-apk 链）：净检出/无插件依赖时，脚本级用例会成批判红，
+  // 门禁在失败分支打印 out.slice(-4000) 后直接 exit 1 —— 那段转储里恰好含 23 条 `SKIP(...)` 行，
+  // 于是聚合判据读到「有 SKIP 发射、却读不到 SKIP= 汇总」。真因不在汇总形态，而在该门禁这一档
+  // 本来就判红（缺 node_modules / 引擎 dsh-tools 属环境缺口）。这里按既有缺口登记，不重复判红；
+  // 修法是让它在净检出下按「环境缺口」结案（exit 2 + 具名结论行），而不是走到断言失败分支。
+  ['check-script-tests.mjs', {
+    requires: ['nodeModules'],
+    kinds: ['no-summary'],
+    reason: '净检出缺插件依赖时脚本级用例判红，失败转储里含 SKIP 行但没有 SKIP= 汇总行',
+    until: '2026-12-31',
+  }],
 ])
 
 const ZERO_CRITERIA_REGISTER = new Map([

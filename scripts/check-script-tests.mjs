@@ -314,13 +314,14 @@ const ran = parseNodeTestSummary(out)
 if (ran.fail > 0) {
   console.log('WARN  已知失败 ' + ran.fail + ' 项（均带理由）：' + KNOWN_FAIL.map((e) => e.file).join(', '))
 }
-// SKIP= 是聚合门禁（check-gate-skips）唯一认得的汇总形态：它按 `\bSKIP=(\d+)` 取值，
-// 任何一条运行期 SKIP 行都必须能在这里对上数（本仓 CI 实测：23 条运行期 SKIP、汇总缺席 ⇒ 整链判红）。
+// SKIP= 是聚合门禁（check-gate-skips）唯一认得的汇总形态：它按 `\bSKIP=(\d+)` 取值。
+// 本门禁此前只打小写 `skip=`，于是「运行期确实发射了 SKIP 行」的环境（有依赖、部分用例自跳过）
+// 会让聚合判据报「汇总缺席」。这里补上大写形态，两种写法并存：小写跟随 node --test 的字段名，
+// 大写满足聚合判据。
 //
-// 为什么不能直接写 ran.skipped：CI 的 node 版本换过 reporter 排版，`ℹ skipped N` 这一行可能解析不到，
-// 于是 `ran.skipped` 是 null —— 字符串拼出来就是 `SKIP=null`，正则 \d+ 匹配不上，等于汇总仍然缺席。
-// 所以这里取「解析值」与「原文里已计数的 SKIP 行数」的较大者：两个来源各自可能为 0/缺席，
-// 但不会同时偏小；万一都为 0，仍打印 SKIP=0（数字形态即可，少报只会是 WARN，不会判红）。
+// 为什么不直接 `SKIP=` + ran.skipped：`ℹ skipped N` 的排版随 node 版本变过，解析失败时
+// `ran.skipped` 是 null，拼出来就是 `SKIP=null`（正则 \d+ 不匹配，等于仍然缺席）。所以取
+// 「解析值」与「原文里已计数的 SKIP 行数」的较大者；两者都为 0 时仍打印数字 0，形态合法。
 const countedSkipLines = (out.match(/^[\t ]*(?:PASS|FAIL|OK|WARN)?[\t ]*SKIP(?![A-Za-z]).*$/gim) || [])
   .filter((line) => !/^[\t ]*SKIP[\t ]*=[\t ]*\d+[\t ]*$/i.test(line)).length
 const skipTotal = Number.isFinite(ran.skipped) ? Math.max(ran.skipped, countedSkipLines) : countedSkipLines
