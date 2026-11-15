@@ -117,6 +117,26 @@ jobs:
         uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
 
+      # 原生路径（native/phone-control-core）由本仓钉死 NDK 27.0.12077973 与 rustc 1.99.0：
+      # ubuntu 运行器镜像会随版本漂移（实测 2026-11 的镜像只有 NDK 27.3，构建即报
+      # "reports version 27.3…, expected 27.0.12077973"）。这里按仓内配置**现装**这两个输入，
+      # 而不是放宽版本判据 —— 同一提交必须产出同一份原生库。
+      - name: 准备原生构建输入（钉死的 NDK 与 rustc）
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK_VERSION="$(node -e "console.log(require('./native/phone-control-core/build-config.json').ndk.version)")"
+          RUSTC_VERSION="$(node -e "console.log(require('./native/phone-control-core/build-config.json').compiler.rustc)")"
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          if [ ! -d "$SDK/ndk/$NDK_VERSION" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" > /dev/null
+          fi
+          test -f "$SDK/ndk/$NDK_VERSION/source.properties"
+          if ! rustup toolchain list | grep -qE "^${RUSTC_VERSION}(-|$)"; then
+            rustup toolchain install "$RUSTC_VERSION" --profile minimal
+          fi
+          rustup run "$RUSTC_VERSION" rustc --version
+
       - name: 设置开发预览安装号
         if: ${{ inputs.version_code != '' }}
         shell: bash
@@ -182,6 +202,9 @@ jobs:
         env:
           ABI: ${{ matrix.abi }}
           SUFFIX: ${{ github.event.inputs.suffix }}
+          # 显式清空：运行器镜像会把 ANDROID_NDK_HOME 指到自带的 NDK（当前 27.3），
+          # 脚本优先用它 → 版本判据当场判红。清空后按 SDK 根 + 仓内钉死版本解析。
+          ANDROID_NDK_HOME: ''
         run: |
           set -euo pipefail
           node scripts/build-apk.mjs --abi "$ABI" --suffix "$SUFFIX"
