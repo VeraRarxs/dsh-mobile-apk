@@ -129,7 +129,9 @@ jobs:
           RUSTC_VERSION="$(node -e "console.log(require('./native/phone-control-core/build-config.json').compiler.rustc)")"
           SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           if [ ! -d "$SDK/ndk/$NDK_VERSION" ]; then
-            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" > /dev/null
+            # sdkmanager 装完即退，`yes` 继续写会得到 SIGPIPE；`pipefail` 下那是失败退出。
+            # 因此这里吞掉管道退出码，真正判据是下一行的 source.properties 是否落地。
+            (yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" --install "ndk;$NDK_VERSION" > /dev/null) || true
           fi
           test -f "$SDK/ndk/$NDK_VERSION/source.properties"
           if ! rustup toolchain list | grep -qE "^${RUSTC_VERSION}(-|$)"; then
