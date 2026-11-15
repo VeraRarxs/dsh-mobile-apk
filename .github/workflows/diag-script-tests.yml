@@ -1,0 +1,32 @@
+# 临时诊断工作流（本 fork 专用，定位 check-script-tests 在构建链里为何判红）。
+name: diag-script-tests
+on:
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: node version
+        run: node --version
+      - name: 运行 check-script-tests（原样输出，不吞退出码）
+        run: |
+          set +e
+          node scripts/check-script-tests.mjs > diag.log 2>&1
+          echo "EXIT=$?"
+          echo '=== SKIP 行 ==='
+          grep -nE 'SKIP' diag.log | head -40
+          echo '=== 尾部 120 行 ==='
+          tail -120 diag.log
+      - name: 上传日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diag-log
+          path: diag.log
