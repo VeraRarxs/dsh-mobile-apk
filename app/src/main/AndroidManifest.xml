@@ -196,4 +196,11 @@
         android:multiprocess="false"
         android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
   </application>
+  <!-- 网页语音输入（官方 voice-input 按钮与唤醒词插件都走 getUserMedia）：权限本身由页面侧的
+       PermissionRequest 触发运行时申请，壳侧闸见 WebViewMicrophoneGate；没有声明时系统设置页
+       **不显示**麦克风开关，用户既看不到也点不到，页面拿到的永远是 NotAllowedError。
+       uses-feature 声明 required=false —— 语音是可选能力，没有麦克风的设备仍要能装本应用。 -->
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+  <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
 </manifest>

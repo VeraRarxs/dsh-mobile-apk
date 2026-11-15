@@ -1598,7 +1598,7 @@ class MainActivity : ComponentActivity() {
     webView.setDownloadListener { url, _userAgent, contentDisposition, _mimeType, _contentLength ->
       downloadSaver.downloadToDownloads(url, contentDisposition)
     }
-    webView.webChromeClient = object : JsConfirmChromeClient(this@MainActivity) {
+    webView.webChromeClient = object : MicChromeClient(this@MainActivity, { trustedTopFrameUrl }) {
       /**
        * 块L L-2：页面控制台消费者（跨层契约的壳侧一半）。
        *
@@ -2512,5 +2512,21 @@ class MainActivity : ComponentActivity() {
     if (::webView.isInitialized && isEngineSource(trustedTopFrameUrl)) {
       webView.evaluateJavascript("window.dispatchEvent(new Event('dsh-legacy-storage-result'))", null)
     }
+  }
+
+  /**
+   * 麦克风运行时授权的回流点（见 [WebViewMicrophoneGate]）。
+   *
+   * 页面 `getUserMedia` 的 `PermissionRequest` 与 Android 运行时权限是两套东西：前者由
+   * `JsConfirmChromeClient.onPermissionRequest` 接住，后者只能经 Activity 的回调结算。
+   * 本壳此前**没有任何** `onRequestPermissionsResult` 重写（也没有任何运行时权限申请），
+   * 所以这里同时是「第一次接线」——未命中本闸的请求码原样交回 `super`，不改变其它路径。
+   *
+   * 位置说明：本重写放在类体末尾，是为了不动 `docs/AGENTS/EXECUTION-MAP.md` 上那批
+   * `MainActivity.kt:行号` 锚点（在文件中间插入会让它们集体漂移，见 check-code-map）。
+   */
+  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    if (WebViewMicrophoneGate.onRequestPermissionsResult(this, requestCode, grantResults)) return
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
   }
 }
